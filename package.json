@@ -1,0 +1,21 @@
+{
+  "name": "ecoute-moteur",
+  "version": "1.0.0",
+  "description": "Écoute Moteur — analyse audio locale du ralenti moteur via le micro (100% offline, sans backend).",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "cap:add:ios": "cap add ios",
+    "cap:sync": "cap sync",
+    "cap:copy": "cap copy",
+    "cap:open:ios": "cap open ios",
+    "serve": "npx --yes serve www -l 5173"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

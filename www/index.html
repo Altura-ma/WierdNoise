@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#05080c" />
+  <title>Écoute Moteur</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ============ HEADER ============ -->
+    <header id="app-header">
+      <button id="btn-back" class="icon-btn" hidden aria-label="Retour">‹</button>
+      <h1 id="header-title">Écoute Moteur</h1>
+      <button id="btn-about" class="icon-btn" aria-label="À propos">ⓘ</button>
+    </header>
+
+    <!-- ============ SCREENS CONTAINER ============ -->
+    <main id="screens">
+
+      <!-- ---- HOME ---- -->
+      <section id="screen-home" class="screen">
+        <div class="warning-banner" id="home-warning">
+          <strong>Outil indicatif.</strong> Cette application est une aide à la
+          détection précoce et ne remplace en aucun cas le diagnostic d'un
+          mécanicien professionnel. Les résultats sont approximatifs.
+        </div>
+
+        <div class="section-head">
+          <h2>Mes véhicules</h2>
+          <span class="hint">Profils sonores enregistrés</span>
+        </div>
+
+        <ul id="profile-list" class="profile-list"></ul>
+
+        <p id="empty-profiles" class="empty-state" hidden>
+          Aucun profil pour le moment. Créez-en un pour enregistrer le son
+          « normal » de votre moteur au ralenti.
+        </p>
+
+        <button id="btn-new-profile" class="primary-btn">+ Nouveau profil</button>
+      </section>
+
+      <!-- ---- PROFILE DETAIL ---- -->
+      <section id="screen-profile" class="screen" hidden>
+        <div class="profile-summary" id="profile-summary"></div>
+
+        <div class="action-grid">
+          <button id="btn-record-ref" class="primary-btn">
+            🎚️ Enregistrer / mettre à jour la référence
+          </button>
+          <button id="btn-diagnose" class="primary-btn accent-cyan" disabled>
+            📡 Lancer un diagnostic
+          </button>
+        </div>
+
+        <div class="section-head">
+          <h2>Tolérance de détection</h2>
+          <span class="hint" id="tolerance-label"></span>
+        </div>
+        <input
+          type="range"
+          id="tolerance-slider"
+          min="5"
+          max="60"
+          step="1"
+          class="slider"
+        />
+        <div class="slider-legend">
+          <span>Sensible</span>
+          <span>Permissif</span>
+        </div>
+
+        <div class="section-head">
+          <h2>Historique des écoutes</h2>
+        </div>
+        <ul id="history-list" class="history-list"></ul>
+        <p id="empty-history" class="empty-state" hidden>
+          Aucune écoute enregistrée pour ce véhicule.
+        </p>
+
+        <button id="btn-delete-profile" class="danger-btn">Supprimer ce profil</button>
+      </section>
+
+      <!-- ---- RECORD REFERENCE ---- -->
+      <section id="screen-record" class="screen" hidden>
+        <div class="scope-wrap">
+          <canvas id="record-canvas" class="scope-canvas"></canvas>
+          <div class="scope-overlay">
+            <span class="scope-tag">RÉFÉRENCE</span>
+            <span id="record-freq" class="freq-readout">— Hz</span>
+          </div>
+        </div>
+
+        <div class="record-status">
+          <div class="rec-timer">
+            <span class="rec-dot" id="rec-dot"></span>
+            <span id="record-timer">00:00</span>
+          </div>
+          <p id="record-hint" class="hint center">
+            Posez le téléphone près du moteur tournant au ralenti, puis démarrez.
+          </p>
+        </div>
+
+        <div class="action-grid">
+          <button id="btn-record-start" class="primary-btn">Démarrer l'écoute</button>
+          <button id="btn-record-validate" class="primary-btn accent-green" disabled>
+            Valider comme « normal »
+          </button>
+        </div>
+        <p id="record-error" class="error-msg" hidden></p>
+      </section>
+
+      <!-- ---- DIAGNOSE ---- -->
+      <section id="screen-diagnose" class="screen" hidden>
+        <div class="scope-wrap">
+          <canvas id="diagnose-canvas" class="scope-canvas"></canvas>
+          <div class="scope-overlay">
+            <span class="scope-tag">DIRECT vs RÉFÉRENCE</span>
+            <span id="diagnose-freq" class="freq-readout">— Hz</span>
+          </div>
+        </div>
+
+        <div id="status-indicator" class="status-indicator status-idle">
+          <span class="status-light"></span>
+          <span id="status-text">En attente…</span>
+        </div>
+
+        <div class="gauge-wrap">
+          <div class="gauge-track"><div id="gauge-fill" class="gauge-fill"></div></div>
+          <span id="gauge-value" class="gauge-value">0%</span>
+        </div>
+
+        <div class="section-head"><h2>Anomalies détectées</h2></div>
+        <ul id="anomaly-list" class="anomaly-list"></ul>
+        <p id="no-anomaly" class="empty-state">Aucune anomalie pour l'instant.</p>
+
+        <div class="action-grid">
+          <button id="btn-diagnose-start" class="primary-btn">Démarrer l'écoute</button>
+          <button id="btn-diagnose-save" class="primary-btn accent-cyan" disabled>
+            Enregistrer ce résultat
+          </button>
+        </div>
+        <p id="diagnose-error" class="error-msg" hidden></p>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ============ MODAL: NEW PROFILE ============ -->
+  <div id="modal-profile" class="modal" hidden>
+    <div class="modal-card">
+      <h2>Nouveau profil</h2>
+      <label class="field">
+        <span>Nom du véhicule</span>
+        <input type="text" id="input-profile-name" placeholder="Ma moto" maxlength="40" />
+      </label>
+      <label class="field">
+        <span>Type de moteur (4 temps)</span>
+        <select id="input-cylinders">
+          <option value="1">1 cylindre</option>
+          <option value="2">2 cylindres</option>
+          <option value="3">3 cylindres</option>
+          <option value="4" selected>4 cylindres</option>
+          <option value="6">6 cylindres</option>
+          <option value="8">8 cylindres</option>
+        </select>
+      </label>
+      <p class="hint">Le nombre de cylindres affine l'estimation du régime (RPM).</p>
+      <div class="modal-actions">
+        <button id="btn-profile-cancel" class="ghost-btn">Annuler</button>
+        <button id="btn-profile-create" class="primary-btn">Créer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: ABOUT ============ -->
+  <div id="modal-about" class="modal" hidden>
+    <div class="modal-card">
+      <h2>À propos</h2>
+      <p>
+        <strong>Écoute Moteur</strong> analyse le son de votre moteur au ralenti
+        directement sur votre appareil, en temps réel, via le microphone.
+      </p>
+      <div class="warning-banner inline">
+        ⚠️ <strong>Avertissement.</strong> Cet outil est purement indicatif. Il
+        s'agit d'une aide à la détection précoce de bruits inhabituels et
+        <strong>ne remplace pas le diagnostic d'un mécanicien professionnel</strong>.
+        N'utilisez jamais ce résultat seul pour décider de l'état mécanique réel
+        de votre véhicule.
+      </div>
+      <p class="hint">
+        100 % local · aucun compte · aucune connexion · aucune donnée audio
+        n'est envoyée ou stockée hors de votre appareil. Seuls des profils de
+        spectre (moyennes de fréquences) sont sauvegardés localement.
+      </p>
+      <div class="modal-actions">
+        <button id="btn-about-close" class="primary-btn">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/analysis.js"></script>
+  <script src="js/visualizer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
