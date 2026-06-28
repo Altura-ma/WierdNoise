@@ -1,0 +1,13 @@
+{
+  "appId": "com.ecoutemoteur.app",
+  "appName": "Écoute Moteur",
+  "webDir": "www",
+  "server": {
+    "iosScheme": "capacitor"
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#05080c",
+    "limitsNavigationsToAppBoundDomains": true
+  }
+}

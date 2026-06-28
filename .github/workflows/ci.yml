@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+
+jobs:
+  checks:
+    name: Lint & validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: JS syntax check (node --check)
+        run: |
+          set -e
+          found=0
+          for f in www/js/*.js scripts/*.js; do
+            [ -e "$f" ] || continue
+            found=1
+            echo "→ checking $f"
+            node --check "$f"
+          done
+          if [ "$found" = "0" ]; then
+            echo "No JS files found to check" >&2
+            exit 1
+          fi
+
+      - name: Validate JSON config
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json OK')"
+          node -e "JSON.parse(require('fs').readFileSync('capacitor.config.json','utf8')); console.log('capacitor.config.json OK')"
+
+      - name: Verify DOM ids referenced in app.js exist in index.html
+        run: |
+          node -e '
+            const fs = require("fs");
+            const html = fs.readFileSync("www/index.html", "utf8");
+            const ids = new Set([...html.matchAll(/id="([^"]+)"/g)].map(m => m[1]));
+            const app = fs.readFileSync("www/js/app.js", "utf8");
+            // Match $("literal-id") calls; ignore the dynamic $(id) helper usage.
+            const refs = [...app.matchAll(/\$\(\s*[\x27\x22]([a-zA-Z0-9_-]+)[\x27\x22]\s*\)/g)].map(m => m[1]);
+            const missing = [...new Set(refs)].filter(r => !ids.has(r));
+            if (missing.length) {
+              console.error("Missing DOM ids:", missing.join(", "));
+              process.exit(1);
+            }
+            console.log("All " + new Set(refs).size + " referenced DOM ids exist.");
+          '
