@@ -141,6 +141,7 @@
     slider.value = p.tolerance || 25;
     updateToleranceLabel(slider.value);
 
+    renderTrend(p);
     renderHistory(p);
   }
 
@@ -470,6 +471,118 @@
   }
 
   // ====================================================
+  // History trend sparkline (profile screen)
+  // ====================================================
+  function renderTrend(p) {
+    var wrap = $('trend-wrap');
+    var hist = (p.history || []).slice(0, 20).reverse(); // oldest -> newest
+    if (hist.length < 2) { hide(wrap); return; }
+    show(wrap);
+
+    var canvas = $('trend-canvas');
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    var w = rect.width || 320, h = rect.height || 120;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    ctx.fillStyle = '#03060a';
+    ctx.fillRect(0, 0, w, h);
+
+    // threshold guide lines (warn 18 / alert 45)
+    var pad = 10;
+    var plotH = h - pad * 2;
+    function yFor(score) { return pad + plotH * (1 - Math.min(100, score) / 100); }
+    [[18, 'rgba(255,206,58,0.25)'], [45, 'rgba(255,77,94,0.25)']].forEach(function (g) {
+      ctx.strokeStyle = g[1];
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, yFor(g[0])); ctx.lineTo(w, yFor(g[0])); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+
+    var step = hist.length > 1 ? (w - pad * 2) / (hist.length - 1) : 0;
+    // line
+    ctx.strokeStyle = '#19c2ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    hist.forEach(function (e, i) {
+      var x = pad + i * step, y = yFor(e.score || 0);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    // points colored by level
+    hist.forEach(function (e, i) {
+      var x = pad + i * step, y = yFor(e.score || 0);
+      ctx.fillStyle = e.level === 'ok' ? '#00e0a4' : (e.level === 'warn' ? '#ffce3a' : '#ff4d5e');
+      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  // ====================================================
+  // Export / Import (local backup)
+  // ====================================================
+  function exportProfiles() {
+    var profiles = EMStorage.getProfiles();
+    if (!profiles.length) { alert('Aucun profil à exporter.'); return; }
+    var data = EMStorage.exportAll();
+    var json = JSON.stringify(data, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var stamp = new Date().toISOString().slice(0, 10);
+    var filename = 'ecoute-moteur-sauvegarde-' + stamp + '.json';
+
+    // Prefer the native share sheet on iOS when files are supported.
+    if (navigator.canShare && window.File) {
+      try {
+        var file = new File([blob], filename, { type: 'application/json' });
+        if (navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: 'Sauvegarde Écoute Moteur' })
+            .catch(function () { downloadBlob(blob, filename); });
+          return;
+        }
+      } catch (e) { /* fall through to download */ }
+    }
+    downloadBlob(blob, filename);
+  }
+
+  function downloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  function importProfiles(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(reader.result);
+        var existing = EMStorage.getProfiles().length;
+        var mode = 'merge';
+        if (existing > 0) {
+          mode = confirm(
+            'Remplacer vos profils actuels par ceux du fichier ?\n\n' +
+            'OK = remplacer · Annuler = fusionner (ajouter aux profils existants)'
+          ) ? 'replace' : 'merge';
+        }
+        var res = EMStorage.importAll(data, mode);
+        alert(res.imported + ' profil(s) importé(s).');
+        renderHome();
+      } catch (e) {
+        alert('Import impossible : ' + (e.message || 'fichier invalide.'));
+      }
+    };
+    reader.onerror = function () { alert('Lecture du fichier impossible.'); };
+    reader.readAsText(file);
+  }
+
+  // ====================================================
   // Modals
   // ====================================================
   function openModal(id) { show($(id)); }
@@ -531,6 +644,13 @@
     on($('btn-about-close'), 'click', function () { closeModal('modal-about'); });
 
     on($('btn-new-profile'), 'click', openNewProfile);
+    on($('btn-export'), 'click', exportProfiles);
+    on($('btn-import'), 'click', function () { $('import-file').click(); });
+    on($('import-file'), 'change', function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (file) importProfiles(file);
+      e.target.value = ''; // allow re-importing the same file
+    });
     on($('btn-profile-cancel'), 'click', function () { closeModal('modal-profile'); });
     on($('btn-profile-create'), 'click', createProfile);
     on($('input-profile-name'), 'keydown', function (e) {

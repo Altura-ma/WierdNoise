@@ -43,6 +43,20 @@
         </p>
 
         <button id="btn-new-profile" class="primary-btn">+ Nouveau profil</button>
+
+        <div class="section-head">
+          <h2>Sauvegarde</h2>
+          <span class="hint">Données locales uniquement</span>
+        </div>
+        <div class="action-grid two-col">
+          <button id="btn-export" class="ghost-btn">⤓ Exporter</button>
+          <button id="btn-import" class="ghost-btn">⤒ Importer</button>
+        </div>
+        <input type="file" id="import-file" accept="application/json,.json" hidden />
+        <p class="hint">
+          Sauvegardez vos profils dans un fichier ou restaurez-les sur un autre
+          appareil. Rien n'est envoyé en ligne.
+        </p>
       </section>
 
       <!-- ---- PROFILE DETAIL ---- -->
@@ -73,6 +87,14 @@
         <div class="slider-legend">
           <span>Sensible</span>
           <span>Permissif</span>
+        </div>
+
+        <div class="section-head">
+          <h2>Tendance</h2>
+          <span class="hint">Écart sur les dernières écoutes</span>
+        </div>
+        <div class="trend-wrap" id="trend-wrap" hidden>
+          <canvas id="trend-canvas" class="trend-canvas"></canvas>
         </div>
 
         <div class="section-head">

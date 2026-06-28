@@ -119,6 +119,17 @@ html, body {
 .ghost-btn { background: transparent; border-color: var(--line); color: var(--text-dim); }
 
 .action-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.action-grid.two-col { flex-direction: row; }
+.action-grid.two-col .ghost-btn { flex: 1; }
+
+/* ---------- Trend graph ---------- */
+.trend-wrap {
+  background: #03060a;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.trend-canvas { display: block; width: 100%; height: 120px; }
 
 /* ---------- Warning banner ---------- */
 .warning-banner {

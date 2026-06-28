@@ -106,6 +106,49 @@
     deleteProfile: function (id) {
       var profiles = load().filter(function (p) { return p.id !== id; });
       persist(profiles);
+    },
+
+    /** Serialize all profiles into a portable backup object. */
+    exportAll: function () {
+      return {
+        app: 'ecoute-moteur',
+        version: 1,
+        exportedAt: Date.now(),
+        profiles: load()
+      };
+    },
+
+    /**
+     * Import a backup produced by exportAll().
+     * @param {object} data parsed backup
+     * @param {string} mode 'merge' (default) keeps existing + adds new ids,
+     *                       'replace' overwrites everything
+     * @returns {{imported:number}}
+     */
+    importAll: function (data, mode) {
+      if (!data || data.app !== 'ecoute-moteur' || !Array.isArray(data.profiles)) {
+        throw new Error('Fichier de sauvegarde invalide.');
+      }
+      var incoming = data.profiles.filter(function (p) { return p && p.id && p.name; });
+      if (mode === 'replace') {
+        persist(incoming);
+        return { imported: incoming.length };
+      }
+      var existing = load();
+      var seen = {};
+      existing.forEach(function (p) { seen[p.id] = true; });
+      var added = 0;
+      incoming.forEach(function (p) {
+        if (seen[p.id]) {
+          // Re-key duplicates so we never clobber an existing vehicle.
+          p.id = 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+          p.name = p.name + ' (importé)';
+        }
+        existing.push(p);
+        added++;
+      });
+      persist(existing);
+      return { imported: added };
     }
   };
 
